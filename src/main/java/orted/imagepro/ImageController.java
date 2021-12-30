@@ -7,6 +7,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import orted.imagepro.exceptions.InvalidFileTypeException;
+
 import javax.servlet.http.HttpServletResponse;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -25,13 +27,12 @@ public class ImageController {
 
     @PostMapping(value = "/", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     ResponseEntity<String> getData(@RequestPart(value = "postDesc") String name,
-                                   @RequestPart(value = "file") MultipartFile[] files
-                                   ) {
-        for (MultipartFile file : files) {
-            storageService.save(file);
-            logger.info("Content type is {}", file.getContentType());
-        }
+                                   @RequestPart(value = "file") MultipartFile file
+                                   ) throws InvalidFileTypeException {
 
+        //Check file type
+        FileTypeFilter.validateFileType(file.getContentType());
+        storageService.save(file);
         return ResponseEntity.ok("Data received");
     }
 
