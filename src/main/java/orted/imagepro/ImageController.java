@@ -8,6 +8,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import orted.imagepro.exceptions.InvalidFileTypeException;
+import orted.imagepro.services.FileResource;
+import orted.imagepro.services.FilesStorageService;
+import orted.imagepro.services.ValidatorFileType;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.InputStream;
@@ -31,7 +34,8 @@ public class ImageController {
                                    ) throws InvalidFileTypeException {
 
         //Check file type
-        FileTypeFilter.validateFileType(file.getContentType());
+        ValidatorFileType.validateFileType(file.getContentType());
+
         storageService.save(file);
         return ResponseEntity.ok("Data received");
     }

@@ -1,8 +1,7 @@
-package orted.imagepro;
+package orted.imagepro.services;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -10,19 +9,26 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
 
+import org.imgscalr.Scalr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+
 @Service
 public class FilesStorageServiceImpl implements FilesStorageService {
 
     private final Path root = Paths.get("uploads");
     private static final Logger logger= LoggerFactory.getLogger(FilesStorageServiceImpl.class);
+
+    @Autowired
+    ImgResizer imgResizer;
 
     @Override
     public void init() {
@@ -39,17 +45,27 @@ public class FilesStorageServiceImpl implements FilesStorageService {
             throw new RuntimeException("Could not initialize folder for upload!");
         }
     }
+    private static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth) {
+        return Scalr.resize(originalImage, Scalr.Method.QUALITY, targetWidth);
+    }
 
     @Override
-    public void save(MultipartFile file) {
+    public void save(MultipartFile img) {
         try {
-            Files.copy(file.getInputStream(), this.root.resolve(file.getOriginalFilename()));
+            BufferedImage outputImage = imgResizer.resize(img.getInputStream());
+
+            String imgNewName = ImgNamer.getNewName(img.getOriginalFilename());
+            String imgType = ImgNamer.getOldFileType(img.getOriginalFilename());
+
+            OutputStream os = new FileOutputStream(this.root.resolve(imgNewName).toString());
+
+            ImageIO.write(outputImage, imgType, os);
         }
         catch (FileAlreadyExistsException e ){
-            logger.info("File {} already exists",  file.getOriginalFilename());
+            logger.info("File {} already exists",  img.getOriginalFilename());
         }
         catch (Exception e) {
-            logger.info("Could not store the file. Error: {}", e.getMessage());
+            logger.info("Could not store the img. Error: {}", e.getMessage());
         }
     }
 
@@ -62,7 +78,7 @@ public class FilesStorageServiceImpl implements FilesStorageService {
 
             if (resource.exists() || resource.isReadable()) {
                 InputStream is =  resource.getInputStream();
-                return new FileResourceImpl(is, resource.contentLength());
+                return new FileResource(is, resource.contentLength());
             }
             else {
                 throw new RuntimeException("Could not read the file!");
