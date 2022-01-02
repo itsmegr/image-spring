@@ -9,6 +9,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.imgscalr.Scalr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +31,9 @@ public class FilesStorageServiceImpl implements FilesStorageService {
 
     @Autowired
     ImgResizer imgResizer;
+
+    @Autowired
+    public AmazonS3 s3;
 
     @Override
     public void init() {
@@ -57,9 +62,24 @@ public class FilesStorageServiceImpl implements FilesStorageService {
             String imgNewName = ImgNamer.getNewName(img.getOriginalFilename());
             String imgType = ImgNamer.getOldFileType(img.getOriginalFilename());
 
-            OutputStream os = new FileOutputStream(this.root.resolve(imgNewName).toString());
+
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
 
             ImageIO.write(outputImage, imgType, os);
+
+            byte[] buffer = os.toByteArray();
+
+            InputStream is = new ByteArrayInputStream(buffer);
+
+            ObjectMetadata meta = new ObjectMetadata();
+
+            meta.setContentLength(buffer.length);
+
+            meta.setContentType("image/jpeg");
+
+            s3.putObject("image-pro", imgNewName, is, meta);
+
+//            ImageIO.write(outputImage, imgType, os)
         }
         catch (FileAlreadyExistsException e ){
             logger.info("File {} already exists",  img.getOriginalFilename());
