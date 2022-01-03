@@ -29,6 +29,11 @@ public class ImageController {
     @Autowired
     FilesStorageService storageService;
 
+    @GetMapping("/")
+    public String home(){
+        return "Welcome to the world";
+    }
+
     @PostMapping(value = "/", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     ResponseEntity<String> getData(@RequestPart(value = "postDesc") String name,
                                    @RequestPart(value = "file") MultipartFile file
